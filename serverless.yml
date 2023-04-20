@@ -1,0 +1,61 @@
+service: lam-s3
+frameworkVersion: '3'
+provider:
+  name: aws
+  runtime: nodejs12.x
+  region: 'us-east-1'
+  timeout: 30
+  apiGateway:
+      binaryMediaTypes:
+          - '*/*'
+  iamRoleStatements:
+      - Effect: "Allow"
+        Action:
+            - lambda:InvokeFunction
+            - "s3:PutObject"
+            - "s3:GetObject"
+        Resource:
+            - "*"
+functions:
+  hello:
+    handler: handler.hello
+    events:
+      - http:
+           path: image-upload
+           method: POST
+           cors: true
+    environment: 
+            Bucket: lamc3bucket
+  lambdaInvokeOnceS3fileUploaded:
+    handler: handler.lambdaInvokeOnceS3fileUploaded
+    events:
+      - s3: 
+         bucket: lamc3bucket
+         existing: true
+         event: s3:ObjectCreated:*
+  getimageMetadata:
+    handler: handler.getimageMetadata
+    name: getimageMetadata
+        
+resources:
+   Resources:
+     ImageUploadBucket:
+          Type: AWS::S3::Bucket
+          Properties:
+              BucketName: lamc3bucket
+              AccessControl: 
+     AttachmentsBucketAllowPublicReadPolicy:
+          Type: AWS::S3::BucketPolicy
+          Properties:
+            Bucket: lamc3bucket
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement: 
+                - Effect: Allow
+                  Action: 
+                    - "s3:GetObject"
+                  Resource: "arn:aws:s3:::lamc3bucket/*"
+                  Principal: '*'
+plugins:
+  - serverless-offline
+  - serverless-step-functions
